@@ -87,7 +87,7 @@ class HiveServer:
         """Verify provided key matches server key"""
         return secrets.compare_digest(provided_key or "", self.secret_key)
     
-    async def handle_peer(self, websocket, path):
+    async def handle_peer(self, websocket):
         """Handle incoming peer connection"""
         peer_id = None
         
