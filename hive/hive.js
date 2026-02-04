@@ -281,13 +281,6 @@ class HiveNetwork {
 
         // Connect to WebSocket
         this.connect();
-
-        // Demo mode if not connected
-        setTimeout(() => {
-            if (this.peers.size === 0) {
-                this.startDemoMode();
-            }
-        }, 3000);
     }
 
     connect() {
