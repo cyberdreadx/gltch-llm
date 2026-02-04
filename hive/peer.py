@@ -242,9 +242,14 @@ class TrainingPeer:
     
     def load_data(self, stoi=None, itos=None):
         """Load training data. Uses server-provided vocab if available."""
+        # Download training data (always needed for training)
+        print("📥 Loading training data...")
+        url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
+        text = requests.get(url).text
+        
         if stoi and itos:
-            # Use vocabulary from server
-            print("📥 Using vocabulary from server...")
+            # Use vocabulary from server (ensures compatibility across peers)
+            print("   Using vocabulary from server...")
             self.vocab_size = len(stoi)
             # itos keys are strings in JSON, convert to int
             itos_int = {int(k): v for k, v in itos.items()}
@@ -253,23 +258,20 @@ class TrainingPeer:
             self.stoi = stoi
             self.itos = itos_int
         else:
-            # Fallback: load Shakespeare locally
-            print("📥 Loading training data...")
-            url = "https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt"
-            text = requests.get(url).text
-            
+            # Build vocabulary locally
             chars = sorted(list(set(text)))
             self.vocab_size = len(chars)
             self.stoi = {ch: i for i, ch in enumerate(chars)}
             self.itos = {i: ch for i, ch in enumerate(chars)}
             self.encode = lambda s: [self.stoi.get(c, 0) for c in s]
             self.decode = lambda l: ''.join([self.itos.get(i, '?') for i in l])
-            
-            data = torch.tensor(self.encode(text), dtype=torch.long)
-            n = int(0.9 * len(data))
-            self.train_data = data[:n]
         
-        print(f"   Vocab size: {self.vocab_size}")
+        # Encode and split training data
+        data = torch.tensor(self.encode(text), dtype=torch.long)
+        n = int(0.9 * len(data))
+        self.train_data = data[:n]
+        
+        print(f"   Loaded {len(text):,} characters, vocab size: {self.vocab_size}")
     
     def init_model(self):
         """Initialize model and optimizer"""

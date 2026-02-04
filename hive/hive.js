@@ -24,10 +24,21 @@ class HiveVisualization {
 
     resize() {
         const rect = this.canvas.parentElement.getBoundingClientRect();
-        this.canvas.width = rect.width;
-        this.canvas.height = rect.height;
-        this.centerX = this.canvas.width / 2;
-        this.centerY = this.canvas.height / 2;
+        const dpr = window.devicePixelRatio || 1;
+
+        // Set canvas size accounting for DPI
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+
+        // Scale canvas CSS size to match
+        this.canvas.style.width = rect.width + 'px';
+        this.canvas.style.height = rect.height + 'px';
+
+        // Scale context to match DPI
+        this.ctx.scale(dpr, dpr);
+
+        this.centerX = rect.width / 2;
+        this.centerY = rect.height / 2;
     }
 
     addNode(peer) {
