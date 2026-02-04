@@ -1,10 +1,13 @@
 """
-GLTCH-2.7M Training Dashboard
+GLTCH Training Dashboard
 ==============================
 Web-based UI for monitoring training progress in real-time.
 
 Usage:
-    python train_with_ui.py
+    python train_with_ui.py                 # Train GLTCH-2.7M (default)
+    python train_with_ui.py --size 10m      # Train GLTCH-10M
+    python train_with_ui.py --size 25m      # Train GLTCH-25M
+    python train_with_ui.py --size 50m      # Train GLTCH-50M
 
 Opens a browser dashboard showing:
 - Live loss curve
@@ -15,6 +18,7 @@ Opens a browser dashboard showing:
 Created by: cyberdreadx
 """
 
+import argparse
 import threading
 import webbrowser
 import json
@@ -42,23 +46,68 @@ training_state = {
     "tokens_per_sec": 0,
     "eta_seconds": 0,
     "current_sample": "",
-    "status": "Initializing..."
+    "status": "Initializing...",
+    "model_name": "GLTCH-2.7M"
 }
 
-# Configuration
-config = {
-    'batch_size': 64,
-    'block_size': 128,
-    'n_embd': 192,
-    'n_head': 6,
-    'n_layer': 6,
-    'dropout': 0.1,
-    'learning_rate': 3e-4,
-    'max_iters': 3000,
-    'eval_interval': 100,
-    'sample_interval': 500,
-    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+# MODEL CONFIGURATIONS
+CONFIGS = {
+    '2.7m': {
+        'name': 'GLTCH-2.7M',
+        'batch_size': 64,
+        'block_size': 128,
+        'n_embd': 192,
+        'n_head': 6,
+        'n_layer': 6,
+        'dropout': 0.1,
+        'learning_rate': 3e-4,
+        'max_iters': 3000,
+        'eval_interval': 100,
+        'sample_interval': 500,
+    },
+    '10m': {
+        'name': 'GLTCH-10M',
+        'batch_size': 48,
+        'block_size': 256,
+        'n_embd': 384,
+        'n_head': 8,
+        'n_layer': 8,
+        'dropout': 0.1,
+        'learning_rate': 2e-4,
+        'max_iters': 5000,
+        'eval_interval': 200,
+        'sample_interval': 500,
+    },
+    '25m': {
+        'name': 'GLTCH-25M',
+        'batch_size': 32,
+        'block_size': 512,
+        'n_embd': 512,
+        'n_head': 8,
+        'n_layer': 12,
+        'dropout': 0.1,
+        'learning_rate': 1e-4,
+        'max_iters': 8000,
+        'eval_interval': 300,
+        'sample_interval': 1000,
+    },
+    '50m': {
+        'name': 'GLTCH-50M',
+        'batch_size': 24,
+        'block_size': 512,
+        'n_embd': 768,
+        'n_head': 12,
+        'n_layer': 12,
+        'dropout': 0.1,
+        'learning_rate': 6e-5,
+        'max_iters': 10000,
+        'eval_interval': 500,
+        'sample_interval': 1000,
+    },
 }
+
+# Will be set based on selected size
+config = None
 
 
 class SelfAttention(nn.Module):
@@ -243,8 +292,9 @@ def train_model():
     training_state["current_sample"] = decode(generated[0].tolist())
     
     # Save model
-    torch.save(model.state_dict(), "gltch_2_7m.pt")
-    training_state["status"] = "Complete! Model saved to gltch_2_7m.pt"
+    model_filename = config['name'].lower().replace('-', '_') + '.pt'
+    torch.save(model.state_dict(), model_filename)
+    training_state["status"] = f"Complete! Model saved to {model_filename}"
 
 
 # ============================================
@@ -592,19 +642,33 @@ def start_server(port=8888):
 # ============================================
 
 if __name__ == "__main__":
-    print("""
+    # Parse arguments
+    parser = argparse.ArgumentParser(description="GLTCH Training Dashboard")
+    parser.add_argument("--size", choices=['2.7m', '10m', '25m', '50m'], default='2.7m',
+                        help="Model size to train (default: 2.7m)")
+    args = parser.parse_args()
+    
+    # Set config based on size
+    config = CONFIGS[args.size].copy()
+    config['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+    # Update training state with model name
+    training_state['model_name'] = config['name']
+    training_state['max_steps'] = config['max_iters']
+    
+    # Calculate model file name
+    model_filename = config['name'].lower().replace('-', '_') + '.pt'
+    
+    print(f"""
 ╔═══════════════════════════════════════════════════════════════════════════════╗
-║    ██████╗ ██╗  ████████╗ ██████╗██╗  ██╗     ██████╗    ███████╗███╗   ███╗  ║
-║   ██╔════╝ ██║  ╚══██╔══╝██╔════╝██║  ██║     ╚════██╗   ╚════██║████╗ ████║  ║
-║   ██║  ███╗██║     ██║   ██║     ███████║      █████╔╝       ██╔╝██╔████╔██║  ║
-║   ██║   ██║██║     ██║   ██║     ██╔══██║     ██╔═══╝       ██╔╝ ██║╚██╔╝██║  ║
-║   ╚██████╔╝███████╗██║   ╚██████╗██║  ██║     ███████╗██╗   ██║  ██║ ╚═╝ ██║  ║
-║    ╚═════╝ ╚══════╝╚═╝    ╚═════╝╚═╝  ╚═╝     ╚══════╝╚═╝   ╚═╝  ╚═╝     ╚═╝  ║
-║                                                                               ║
+║   {config['name']:^73} ║
+║   Generative Language Transformer with Contextual Hierarchy                  ║
 ║   Training Dashboard — Created by: cyberdreadx                                ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
     """)
     
+    print(f"📐 Config: {config['n_layer']} layers, {config['n_head']} heads, {config['n_embd']} dim")
+    print(f"📦 Batch: {config['batch_size']}, Context: {config['block_size']}")
     print(f"🚀 Device: {config['device']}")
     print(f"🌐 Dashboard: http://localhost:8888")
     print("-" * 50)
@@ -625,7 +689,8 @@ if __name__ == "__main__":
         training_state["status"] = "Stopped by user"
     
     # Keep server running after training
-    print("\n✅ Training complete! Dashboard still available at http://localhost:8888")
+    print(f"\n✅ Training complete! Model saved to {model_filename}")
+    print("   Dashboard still available at http://localhost:8888")
     print("   Press Ctrl+C to exit")
     
     try:
@@ -633,3 +698,4 @@ if __name__ == "__main__":
             time.sleep(1)
     except KeyboardInterrupt:
         print("\n👋 Goodbye!")
+
