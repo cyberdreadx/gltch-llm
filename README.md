@@ -15,13 +15,37 @@
 
 Build and train your own language model from scratch. Supports multiple model sizes and distributed training across multiple GPUs.
 
+---
+
+## 🌐 Join the GLTCH Hive
+
+**Contribute your GPU to train AI together!** Join our distributed training network and help build open-source language models.
+
+### One-Click Join (Google Colab)
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/cyberdreadx/gltch-llm/blob/main/gltch_hive_peer.ipynb)
+
+### Manual Join
+
+```bash
+pip install torch websockets requests
+python hive/peer.py --server ws://76.13.121.10:8765 --key PUBLIC_KEY --name my-gpu
+```
+
+### 📊 Live Dashboard
+
+Watch training progress in real-time: **[http://76.13.121.10:8080](http://76.13.121.10:8080)**
+
+---
+
 ## Features
 
-- 🧠 **Multiple model sizes** — 2.7M, 10M, 25M, or 50M parameters
+- 🧠 **Multiple model sizes** — 1M, 2.7M, 10M, 25M, or 50M parameters
 - 📊 **Live training dashboard** — Real-time loss curve and generated samples
 - 💬 **Chat interface** — Talk to your trained model with voice output
 - 🌐 **Distributed training (Hive)** — Train across multiple machines/GPUs
-- 🎮 **Works on consumer GPUs** — Or even CPU (just slower)
+- 🎮 **Works everywhere** — GPU, CPU, low VRAM, or Colab free tier
+- 📱 **Mobile support** — Train on Android via Termux
 
 ---
 
@@ -31,7 +55,7 @@ Build and train your own language model from scratch. Supports multiple model si
 
 ```bash
 git clone https://github.com/cyberdreadx/gltch-llm.git
-cd gltch-2.7m
+cd gltch-llm
 pip install torch requests
 
 # Train 2.7M model with live dashboard
@@ -43,7 +67,20 @@ python train_with_ui.py --size 10m
 
 Opens a browser dashboard showing loss curve, speed, ETA, and generated samples.
 
-### Option 2: Chat with Trained Model
+### Option 2: Train on Custom Data
+
+```bash
+# Train on your own text file
+python train_with_ui.py --data your_novel.txt
+
+# Resume from a checkpoint
+python train_with_ui.py --resume checkpoint_step_500.pt
+
+# Custom checkpoint interval
+python train_with_ui.py --data mydata.txt --checkpoint-interval 250
+```
+
+### Option 3: Chat with Trained Model
 
 ```bash
 pip install torch requests
@@ -59,15 +96,17 @@ Opens a chat interface at `http://localhost:8889` with:
 
 ## Model Sizes
 
-| Size | Params | VRAM | Training Time (GPU) |
-|------|--------|------|---------------------|
-| `2.7m` | 2.7M | ~1GB | ~5 min |
-| `10m` | ~10M | ~2GB | ~15 min |
-| `25m` | ~25M | ~4GB | ~30 min |
-| `50m` | ~50M | ~8GB | ~1 hour |
+| Size | Params | VRAM | Training Time | Best For |
+|------|--------|------|---------------|----------|
+| `1m` | ~1M | <1GB | ~2 min | Mobile, CPU, testing |
+| `2.7m` | 2.7M | ~1GB | ~5 min | Quick experiments |
+| `10m` | ~10M | ~2GB | ~15 min | Good quality |
+| `25m` | ~25M | ~4GB | ~30 min | Better quality |
+| `50m` | ~50M | ~8GB | ~1 hour | Best quality |
 
 ```bash
 # Examples
+python train_with_ui.py --size 1m     # Micro (mobile/CPU)
 python train_with_ui.py --size 2.7m   # Default
 python train_with_ui.py --size 10m    # Larger
 python train_with_ui.py --size 50m    # Largest
@@ -75,51 +114,48 @@ python train_with_ui.py --size 50m    # Largest
 
 ---
 
-## Training Scripts
+## Compatibility Options
 
-| Script | Purpose |
-|--------|---------|
-| `train_with_ui.py` | Dashboard UI + training |
-| `train_continuous.py` | Resume training from checkpoint |
-| `train_custom.py` | Train on your own text data |
-| `train_pro.py` | CLI training with size selection |
-| `gltch_2_7m.py` | Simple terminal training |
+### CPU-Only Training
 
-### Train on Custom Data
+GLTCH automatically detects if no GPU is available and runs on CPU:
 
 ```bash
-python train_custom.py --data your_novel.txt
-python train_custom.py --data ./my_dataset/ --steps 10000
-python train_custom.py --data https://example.com/text.txt
+# Force CPU mode
+python train_with_ui.py --device cpu --size 1m
 ```
 
-### Resume Training
+### Low VRAM Mode
+
+For GPUs with limited memory (2-4GB):
 
 ```bash
-python train_continuous.py --resume
-python train_continuous.py --resume --steps 5000  # Add more steps
+python train_with_ui.py --low-vram --size 2.7m
 ```
 
----
+This reduces batch size and context length to fit in memory.
 
-## Chat Interface
+### Android (Termux)
+
+Train on your Android phone:
 
 ```bash
-python chat.py
+# Install Termux from F-Droid
+pkg install python
+pip install torch requests
+git clone https://github.com/cyberdreadx/gltch-llm.git
+cd gltch-llm
+python train_with_ui.py --size 1m --device cpu
 ```
 
-Open `http://localhost:8889` in your browser.
+### Google Colab (Free GPU)
 
-### Controls
+1. Open [Google Colab](https://colab.research.google.com)
+2. Upload `gltch_2_7m_colab.py` or use our Hive notebook
+3. **Runtime → Change runtime type → T4 GPU**
+4. Run cells in order
 
-| Slider | What It Does | Default |
-|--------|--------------|---------|
-| Tokens | Output length | 200 |
-| Temp | Creativity (lower = focused) | 0.8 |
-| Top-K | Only consider top K tokens | 40 |
-| Rep Pen | Penalize repetition | 1.1 |
-
-Click the **🔊 Voice** button to enable text-to-speech.
+Training takes ~5 minutes on a free T4 GPU.
 
 ---
 
@@ -141,78 +177,105 @@ Train across multiple machines using the Hive network.
         ▼                     ▼                     ▼
 ┌───────────────┐    ┌───────────────┐    ┌───────────────┐
 │   Peer 1      │    │   Peer 2      │    │   Peer 3      │
-│   RTX 4090    │    │   RTX 3080    │    │   M1 Mac      │
+│   RTX 4090    │    │   Colab T4    │    │   Android     │
 │   peer.py     │    │   peer.py     │    │   peer.py     │
 └───────────────┘    └───────────────┘    └───────────────┘
 ```
 
-### Step 1: Start Coordinator (on VPS)
+### Join as a Peer
 
-```bash
-# SSH to your VPS
-curl -sSL https://raw.githubusercontent.com/cyberdreadx/gltch-llm/main/hive/setup_coordinator.sh | bash
-```
+**Easiest**: Use Google Colab (click badge above)
 
-Or manually:
-
+**Manual**:
 ```bash
 git clone https://github.com/cyberdreadx/gltch-llm.git
-cd gltch-2.7m/hive
-pip install websockets
-python server.py
-```
-
-Dashboard: `http://YOUR_VPS_IP:8080`
-
-### Step 2: Connect Peers (on GPU machines)
-
-```bash
-git clone https://github.com/cyberdreadx/gltch-llm.git
-cd gltch-2.7m
+cd gltch-llm
 pip install torch websockets requests
 
-# Connect and train
-python hive/peer.py --server ws://YOUR_VPS_IP:8765 --name my-gpu --size 10m
+# Connect to public hive
+python hive/peer.py --server ws://76.13.121.10:8765 --key PUBLIC_KEY --name my-gpu --size 10m
 ```
 
 ### Peer Options
 
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--server` | Coordinator WebSocket URL | Required |
+| `--key` | Authentication key | Required |
+| `--name` | Your peer's display name | `peer-XXXX` |
+| `--size` | Model size (1m/2.7m/10m/25m/50m) | `2.7m` |
+| `--low-vram` | Reduce memory usage | Off |
+
+### Run Your Own Coordinator
+
 ```bash
-python hive/peer.py \
-    --server ws://coordinator.example.com:8765 \
-    --name office-4090 \
-    --size 25m
+# On your VPS
+git clone https://github.com/cyberdreadx/gltch-llm.git
+cd gltch-llm/hive
+pip install websockets requests torch
+
+# Start server with custom data
+python server.py --data your_training_data.txt
+
+# With checkpoint resume
+python server.py --resume checkpoint.pt --checkpoint-interval 500
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--server` | Coordinator WebSocket URL |
-| `--name` | Your peer's display name |
-| `--size` | Model size (2.7m/10m/25m/50m) |
+Dashboard: `http://YOUR_VPS_IP:8080`
+
+---
+
+## CLI Flags Reference
+
+### train_with_ui.py
+
+| Flag | Description |
+|------|-------------|
+| `--size` | Model size: 1m, 2.7m, 10m, 25m, 50m |
+| `--data PATH` | Custom training data file |
+| `--resume PATH` | Resume from checkpoint |
+| `--checkpoint-interval N` | Save checkpoint every N steps |
+| `--device` | Force cpu or cuda |
+| `--low-vram` | Reduce memory usage |
+
+### hive/peer.py
+
+| Flag | Description |
+|------|-------------|
+| `--server URL` | Coordinator WebSocket URL |
+| `--key KEY` | Authentication key |
+| `--name NAME` | Peer display name |
+| `--size` | Model size |
+| `--low-vram` | Low memory mode |
+
+### hive/server.py
+
+| Flag | Description |
+|------|-------------|
+| `--data PATH` | Training data file |
+| `--resume PATH` | Resume from checkpoint |
+| `--checkpoint-interval N` | Checkpoint frequency |
+| `--ws-port` | WebSocket port (default: 8765) |
+| `--http-port` | Dashboard port (default: 8080) |
 
 ---
 
 ## Project Structure
 
 ```
-gltch-2.7m/
-├── gltch_2_7m.py          # Core model + terminal training
-├── gltch_2_7m_colab.py    # Google Colab version
-├── train_with_ui.py       # Dashboard training (--size support)
-├── train_continuous.py    # Resumable training
-├── train_custom.py        # Train on custom data
-├── train_pro.py           # CLI training with sizes
+gltch-llm/
+├── train_with_ui.py       # Dashboard training
 ├── chat.py                # Chat interface + voice
-├── README.md
-├── LICENSE
-└── hive/                  # Distributed training
-    ├── server.py          # Coordinator
-    ├── peer.py            # Training peer (--size support)
-    ├── quick_peer.py      # Easy peer connect
-    ├── setup_coordinator.sh
-    ├── index.html         # Dashboard
-    ├── style.css
-    └── hive.js
+├── gltch_2_7m.py          # Core model
+├── gltch_2_7m_colab.py    # Colab version
+├── gltch_hive_peer.ipynb  # Colab peer notebook
+├── hive/
+│   ├── server.py          # Coordinator
+│   ├── peer.py            # Training peer
+│   ├── index.html         # Dashboard
+│   ├── style.css
+│   └── hive.js
+└── website/               # gltch.app site
 ```
 
 ---
@@ -234,6 +297,7 @@ GLTCH
 
 | Size | Layers | Heads | Dim | Context |
 |------|--------|-------|-----|---------|
+| 1M | 4 | 4 | 128 | 64 |
 | 2.7M | 6 | 6 | 192 | 128 |
 | 10M | 8 | 8 | 384 | 256 |
 | 25M | 12 | 8 | 512 | 512 |
@@ -244,24 +308,13 @@ GLTCH
 ## Requirements
 
 - Python 3.8+
-- PyTorch 2.0+
+- PyTorch 2.0+ (or 1.x for CPU)
 - `requests` (for data loading)
 - `websockets` (for Hive only)
 
 ```bash
 pip install torch requests websockets
 ```
-
----
-
-## Google Colab (Free GPU)
-
-1. Open [Google Colab](https://colab.research.google.com)
-2. Upload `gltch_2_7m_colab.py`
-3. **Runtime → Change runtime type → T4 GPU**
-4. Run cells in order
-
-Training takes ~5 minutes on a free T4 GPU.
 
 ---
 

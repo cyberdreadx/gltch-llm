@@ -46,6 +46,17 @@ except ImportError:
 # ============================================
 
 CONFIGS = {
+    '1m': {
+        'name': 'GLTCH-1M',
+        'batch_size': 32,
+        'block_size': 64,
+        'n_embd': 128,
+        'n_head': 4,
+        'n_layer': 4,
+        'dropout': 0.1,
+        'learning_rate': 5e-4,
+        'max_iters': 2000,
+    },
     '2.7m': {
         'name': 'GLTCH-2.7M',
         'batch_size': 64,
