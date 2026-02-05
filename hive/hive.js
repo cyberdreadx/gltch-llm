@@ -15,11 +15,72 @@ class HiveVisualization {
         this.centerY = 0;
         this.time = 0;
 
+        // Drag state
+        this.isDragging = false;
+        this.dragNode = null;
+        this.hoveredNode = null;
+        this.mouseX = 0;
+        this.mouseY = 0;
+
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
+        // Mouse events for dragging
+        this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+        this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+        this.canvas.addEventListener('mouseup', () => this.onMouseUp());
+        this.canvas.addEventListener('mouseleave', () => this.onMouseUp());
+
         // Start animation loop
         this.animate();
+    }
+
+    onMouseDown(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Find clicked node
+        for (const node of this.nodes) {
+            const dist = Math.sqrt((node.x - x) ** 2 + (node.y - y) ** 2);
+            if (dist < node.size + 10) {
+                this.isDragging = true;
+                this.dragNode = node;
+                this.canvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+    }
+
+    onMouseMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.mouseX = e.clientX - rect.left;
+        this.mouseY = e.clientY - rect.top;
+
+        if (this.isDragging && this.dragNode) {
+            this.dragNode.x = this.mouseX;
+            this.dragNode.y = this.mouseY;
+            this.dragNode.targetX = this.mouseX;
+            this.dragNode.targetY = this.mouseY;
+        } else {
+            // Check for hover
+            this.hoveredNode = null;
+            for (const node of this.nodes) {
+                const dist = Math.sqrt((node.x - this.mouseX) ** 2 + (node.y - this.mouseY) ** 2);
+                if (dist < node.size + 10) {
+                    this.hoveredNode = node;
+                    this.canvas.style.cursor = 'grab';
+                    return;
+                }
+            }
+            this.canvas.style.cursor = 'default';
+        }
+    }
+
+    onMouseUp() {
+        this.isDragging = false;
+        this.dragNode = null;
+        this.canvas.style.cursor = this.hoveredNode ? 'grab' : 'default';
     }
 
     resize() {
@@ -189,56 +250,79 @@ class HiveVisualization {
 
     drawNode(node) {
         const ctx = this.ctx;
+        const isHovered = this.hoveredNode === node;
+        const isDragged = this.dragNode === node;
 
-        // Smooth movement
-        node.x += (node.targetX - node.x) * 0.05;
-        node.y += (node.targetY - node.y) * 0.05;
+        // Smooth movement (skip if dragging)
+        if (!isDragged) {
+            node.x += (node.targetX - node.x) * 0.05;
+            node.y += (node.targetY - node.y) * 0.05;
+        }
 
-        // Floating animation
-        const floatY = Math.sin(this.time * 2 + node.pulse) * 5;
+        // Floating animation (reduce when hovered/dragged)
+        const floatY = (isHovered || isDragged) ? 0 : Math.sin(this.time * 2 + node.pulse) * 5;
         const y = node.y + floatY;
 
-        // Glow
-        const glowSize = node.size + 10 + Math.sin(this.time * 3 + node.pulse) * 5;
-        const gradient = ctx.createRadialGradient(
-            node.x, y, 0,
-            node.x, y, glowSize
-        );
-        gradient.addColorStop(0, node.color);
-        gradient.addColorStop(0.5, node.color + '40');
-        gradient.addColorStop(1, 'transparent');
+        // Size boost on hover
+        const sizeMultiplier = isHovered ? 1.2 : 1;
+        const size = node.size * sizeMultiplier;
+
+        // Outer glow ring
+        const glowSize = size + 20 + Math.sin(this.time * 3 + node.pulse) * 8;
+        const glowGradient = ctx.createRadialGradient(node.x, y, size * 0.8, node.x, y, glowSize);
+        glowGradient.addColorStop(0, node.color + '60');
+        glowGradient.addColorStop(0.5, node.color + '20');
+        glowGradient.addColorStop(1, 'transparent');
 
         ctx.beginPath();
         ctx.arc(node.x, y, glowSize, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = glowGradient;
         ctx.fill();
 
-        // Hexagon node
+        // Main bubble - smooth circle with gradient (bubblemaps style)
+        const bubbleGradient = ctx.createRadialGradient(
+            node.x - size * 0.3, y - size * 0.3, 0,
+            node.x, y, size
+        );
+        bubbleGradient.addColorStop(0, '#ffffff30');
+        bubbleGradient.addColorStop(0.3, node.color);
+        bubbleGradient.addColorStop(1, node.color + '80');
+
         ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2 - Math.PI / 2;
-            const px = node.x + Math.cos(angle) * node.size;
-            const py = y + Math.sin(angle) * node.size;
-            if (i === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.fillStyle = '#1a1a2e';
+        ctx.arc(node.x, y, size, 0, Math.PI * 2);
+        ctx.fillStyle = bubbleGradient;
         ctx.fill();
-        ctx.strokeStyle = node.color;
-        ctx.lineWidth = 2;
+
+        // Inner highlight (glass effect)
+        const highlightGradient = ctx.createRadialGradient(
+            node.x - size * 0.25, y - size * 0.25, 0,
+            node.x - size * 0.25, y - size * 0.25, size * 0.5
+        );
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+        highlightGradient.addColorStop(1, 'transparent');
+
+        ctx.beginPath();
+        ctx.arc(node.x - size * 0.2, y - size * 0.2, size * 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = highlightGradient;
+        ctx.fill();
+
+        // Border ring
+        ctx.beginPath();
+        ctx.arc(node.x, y, size, 0, Math.PI * 2);
+        ctx.strokeStyle = isHovered ? '#ffffff' : node.color;
+        ctx.lineWidth = isHovered ? 3 : 2;
         ctx.stroke();
 
         // Node label
         ctx.fillStyle = '#fff';
-        ctx.font = '10px Orbitron';
+        ctx.font = `${isHovered ? 12 : 11}px Orbitron`;
         ctx.textAlign = 'center';
-        ctx.fillText(node.name, node.x, y + node.size + 20);
+        ctx.fillText(node.name, node.x, y + size + 18);
 
         // GPU label
         ctx.fillStyle = node.color;
-        ctx.font = '8px Rajdhani';
-        ctx.fillText(node.gpu, node.x, y + node.size + 32);
+        ctx.font = '9px Rajdhani';
+        ctx.fillText(node.gpu, node.x, y + size + 30);
     }
 
     drawCenterNode() {
