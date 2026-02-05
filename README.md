@@ -34,7 +34,7 @@ python hive/peer.py --server ws://76.13.121.10:8765 --key PUBLIC_KEY --name my-g
 
 ### 📊 Live Dashboard
 
-Watch training progress in real-time: **[http://76.13.121.10:8080](http://76.13.121.10:8080)**
+Watch training progress in real-time: **[https://hive.gltch.app](https://hive.gltch.app)**
 
 ---
 
